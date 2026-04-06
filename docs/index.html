@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Canvas – Web Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #1e1e1e;
+            color: #cccccc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #app-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        canvas#canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: default;
+        }
+
+        /* Toolbar */
+        #toolbar {
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            background: rgba(30, 30, 30, 0.92);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 8px 14px;
+            z-index: 2000;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            align-items: center;
+        }
+
+        #toolbar span.logo {
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.7);
+            letter-spacing: 0.5px;
+            margin-right: 6px;
+        }
+
+        #toolbar button {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 7px;
+            color: rgba(255,255,255,0.8);
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+
+        #toolbar button:hover {
+            background: rgba(255,255,255,0.12);
+            color: #fff;
+            border-color: rgba(255,255,255,0.2);
+        }
+
+        #toolbar .separator {
+            width: 1px;
+            height: 20px;
+            background: rgba(255,255,255,0.1);
+            margin: 0 2px;
+        }
+
+        /* Tips bar */
+        #tips {
+            position: fixed;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20,20,20,0.85);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 6px 14px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+            z-index: 2000;
+            backdrop-filter: blur(10px);
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        #tips strong { color: rgba(255,255,255,0.6); }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <canvas id="canvas"></canvas>
+</div>
+
+<!-- Toolbar -->
+<div id="toolbar">
+    <span class="logo">✦ Infinite Canvas</span>
+    <div class="separator"></div>
+    <button onclick="addTextNode()">＋ Node</button>
+    <button onclick="clearCanvas()">🗑 Clear</button>
+    <button onclick="exportCanvas()">⬇ Export JSON</button>
+    <button onclick="importCanvas()">⬆ Import JSON</button>
+    <div class="separator"></div>
+    <button onclick="resetView()">⌖ Reset View</button>
+</div>
+
+<!-- Tips -->
+<div id="tips">
+    <strong>Doppelklick</strong> = neuer Node &nbsp;|&nbsp;
+    <strong>Shift + Drag</strong> = verbinden &nbsp;|&nbsp;
+    <strong>Scroll</strong> = zoom &nbsp;|&nbsp;
+    <strong>Alt + Drag</strong> = panning &nbsp;|&nbsp;
+    <strong>Del</strong> = löschen
+</div>
+
+<!-- Shim: VS Code API stub so the app runs without VS Code -->
+<script>
+    window.vsCodeAPI = {
+        postMessage: function(msg) {
+            console.log('[vsCodeAPI stub] message:', msg);
+            if (msg.type === 'save') {
+                try {
+                    localStorage.setItem('infinite_canvas_data', msg.content);
+                } catch(e) {}
+            }
+        }
+    };
+</script>
+
+<!-- Load the canvas app as ES modules -->
+<script type="module">
+    import { InfiniteCanvas } from '../webview/src/InfiniteCanvasSimple.js';
+
+    // Init canvas
+    const canvas = new InfiniteCanvas('canvas');
+    window._canvas = canvas;
+
+    // Restore from localStorage if available
+    try {
+        const saved = localStorage.getItem('infinite_canvas_data');
+        if (saved) {
+            const data = JSON.parse(saved);
+            canvas.canvasState.loadCanvasData(data);
+            console.log('✅ Restored canvas from localStorage');
+        }
+    } catch(e) {
+        console.warn('Could not restore canvas data', e);
+    }
+
+    // Autosave on state change
+    canvas.canvasState.onStateChange = () => {
+        try {
+            const data = canvas.canvasState.exportCanvasData();
+            localStorage.setItem('infinite_canvas_data', JSON.stringify(data));
+        } catch(e) {}
+        if (canvas.requestRender) canvas.requestRender();
+    };
+
+    // Toolbar actions
+    window.addTextNode = () => {
+        const cx = (canvas.canvas.width / 2 - canvas.canvasState.offsetX) / canvas.canvasState.scale;
+        const cy = (canvas.canvas.height / 2 - canvas.canvasState.offsetY) / canvas.canvasState.scale;
+        canvas.canvasState.createNode('New Node', cx - 125, cy - 60);
+    };
+
+    window.clearCanvas = () => {
+        if (confirm('Canvas wirklich leeren?')) {
+            canvas.canvasState.nodes = [];
+            canvas.canvasState.connections = [];
+            canvas.canvasState.selectedNodes = [];
+            canvas.canvasState.notifyStateChange();
+        }
+    };
+
+    window.exportCanvas = () => {
+        const data = canvas.canvasState.exportCanvasData();
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'canvas-export.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    window.importCanvas = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json,.canvas';
+        input.onchange = e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = ev => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    canvas.canvasState.loadCanvasData(data);
+                    console.log('✅ Canvas imported');
+                } catch(err) {
+                    alert('Ungültige JSON Datei');
+                }
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    };
+
+    window.resetView = () => {
+        canvas.canvasState.offsetX = 0;
+        canvas.canvasState.offsetY = 0;
+        canvas.canvasState.scale = 1;
+        canvas.canvasState.notifyStateChange();
+    };
+</script>
+
+</body>
+</html>
