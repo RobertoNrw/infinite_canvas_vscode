@@ -1,30 +1,30 @@
 // AI Service Module for VS Code Extension
-// Using OpenRouter for AI model access
+// Using OpenRouter for AI model access (supports Perplexity, Qwen, Claude, GPT, Gemini, etc.)
 
 export function getProviderName(baseURL) {
+    if (baseURL && baseURL.includes('perplexity')) return 'Perplexity';
+    if (baseURL && baseURL.includes('anthropic')) return 'Anthropic';
     return 'OpenRouter';
 }
 
 export function getErrorMessage(error) {
     let errorMessage = 'Failed to generate AI ideas. ';
-
-    // Check for specific error patterns
     const errorString = error.message || JSON.stringify(error) || '';
 
     if (errorString.includes('No auth credentials found') || errorString.includes('401')) {
-        errorMessage += 'Authentication failed. Please check your API key configuration.';
+        errorMessage += 'Authentication failed. Please check your API key in the AI config panel.';
     } else if (errorString.includes('API key')) {
-        errorMessage += 'API key issue. Please verify your API key in the extension settings.';
+        errorMessage += 'API key issue. Please enter your OpenRouter API key in the AI config panel.';
     } else if (errorString.includes('quota') || errorString.includes('insufficient_quota')) {
-        errorMessage += 'API quota exceeded. Please check your account limits.';
+        errorMessage += 'API quota exceeded. Please check your account limits at openrouter.ai.';
     } else if (errorString.includes('network') || errorString.includes('fetch')) {
-        errorMessage += 'Network error. Please try again.';
+        errorMessage += 'Network error. Please check your internet connection and try again.';
     } else if (errorString.includes('unauthorized')) {
-        errorMessage += 'Unauthorized access. Please check your API key configuration.';
+        errorMessage += 'Unauthorized. Please verify your API key in the AI config panel.';
     } else if (errorString.includes('429') || errorString.includes('rate limit')) {
-        errorMessage += 'Rate limit exceeded. Please wait and try again.';
+        errorMessage += 'Rate limit exceeded. Please wait a moment and try again.';
     } else if (errorString.includes('model') && errorString.includes('not found')) {
-        errorMessage += 'The requested model is not available. Using fallback model.';
+        errorMessage += 'Model not available. Please check your model names in the config panel.';
     } else {
         errorMessage += errorString || 'Unknown error occurred.';
     }
@@ -33,164 +33,198 @@ export function getErrorMessage(error) {
 }
 
 // ============================================================================
-// OPENROUTER API FUNCTIONS
+// API KEY MANAGEMENT
+// Multi-source: localStorage (UI panel) > VS Code config > env variables
+// Supported providers via OpenRouter: Claude, GPT, Gemini, Qwen, Perplexity, Grok, DeepSeek
 // ============================================================================
 
-// OpenRouter API key - using environment variable
-let OPENROUTER_API_KEY = null;
+let _cachedApiKey = null;
 
-// Try to get API key from various sources
+function getApiKey() {
+    // 1. Always prefer what the user typed in the UI panel
+    const lsKey = localStorage.getItem('ai-api-key');
+    if (lsKey && lsKey.trim()) return lsKey.trim();
+
+    // 2. Fallback to key received from VS Code extension (settings.json)
+    if (_cachedApiKey && _cachedApiKey.trim()) return _cachedApiKey.trim();
+
+    return null;
+}
+
+// Request the API key from the VS Code extension host on load
+// Extension sends it back as 'openRouterApiKey' message (fixed from old 'groqApiKey')
 if (typeof window !== 'undefined' && window.vsCodeAPI) {
-    // Try to get from VS Code environment
     try {
-        window.vsCodeAPI.postMessage({
-            type: 'getOpenRouterApiKey'
-        });
+        window.vsCodeAPI.postMessage({ type: 'getOpenRouterApiKey' });
     } catch (e) {
-        console.log('Could not request OpenRouter API key from VS Code');
+        console.warn('Could not request API key from VS Code host:', e);
     }
 }
 
-// Handle message from VS Code extension with API key
+// Listen for the API key response from the extension
 if (typeof window !== 'undefined') {
     window.addEventListener('message', event => {
         const message = event.data;
-        if (message.type === 'openRouterApiKey') {
-            OPENROUTER_API_KEY = message.apiKey;
-            console.log('🔑 Received OpenRouter API key from VS Code extension');
+        // Handle BOTH old ('groqApiKey') and new ('openRouterApiKey') message types for compatibility
+        if (message.type === 'openRouterApiKey' || message.type === 'groqApiKey') {
+            if (message.apiKey) {
+                _cachedApiKey = message.apiKey;
+                // Also persist to localStorage so UI panel is in sync
+                if (!localStorage.getItem('ai-api-key')) {
+                    localStorage.setItem('ai-api-key', message.apiKey);
+                }
+                console.log('🔑 API key received from VS Code extension and cached');
+            }
         }
     });
 }
 
-export async function generateAIIdeasGroq(selectedNodeText, connectedNodes = [], model = 'anthropic/claude-3.5-sonnet', fileContent = null) {
-    console.log('🎯 Using configurable AI service');
+// ============================================================================
+// MAIN AI GENERATION FUNCTION
+// Supports any OpenAI-compatible endpoint (OpenRouter, Perplexity, Anthropic direct, etc.)
+// ============================================================================
+
+export async function generateAIIdeasGroq(
+    selectedNodeText,
+    connectedNodes = [],
+    model = 'anthropic/claude-3.5-sonnet',
+    fileContent = null
+) {
+    console.log('🎯 generateAIIdeas called');
     console.log('🤖 Model:', model);
 
-    // Get configurable settings from localStorage
-    const baseUrl = localStorage.getItem('ai-base-url') || 'https://openrouter.ai/api/v1';
-    const apiKey = localStorage.getItem('ai-api-key') || OPENROUTER_API_KEY;
-    
-    console.log('🌐 Base URL:', baseUrl);
+    const baseUrl = (localStorage.getItem('ai-base-url') || 'https://openrouter.ai/api/v1').replace(/\/$/, '');
+    const apiKey  = getApiKey();
 
-    // Check if API key is available
+    console.log('🌐 Endpoint:', baseUrl);
+
     if (!apiKey) {
-        console.warn('❌ API key not available');
-        throw new Error('Please configure your API key in the extension settings to use AI features.');
+        throw new Error(
+            'No API key configured. Please enter your OpenRouter API key in the AI config panel ' +
+            '(click the ⚙️ button, then "AI Configuration").'
+        );
     }
 
-    // Construct messages array with connected nodes as conversation history
-    let messages = [];
+    // Build message history from ancestor nodes
+    const messages = [];
 
     if (connectedNodes && connectedNodes.length > 0) {
-        // Debug: log the ancestor nodes structure
-        console.log('🔍 Ancestor nodes debug:', connectedNodes.map(node => ({
-            id: node.id,
-            text: node.text,
-            file: node.file,
-            fullPath: node.fullPath,
-            type: node.type,
-            hasText: !!node.text,
-            textLength: node.text ? node.text.length : 0
-        })));
-        
-        // Add connected nodes as previous messages in the conversation
         connectedNodes.forEach(node => {
-            // Enhanced logic to handle different node types
             let nodeContent = null;
-            
-            // Try to get content from different node properties
-            // Priority: loadedContent > text > file > fullPath
             if (node.loadedContent && typeof node.loadedContent === 'string' && node.loadedContent.trim()) {
-                // If we have loaded file content, use it with a description
-                const fileName = node.text || node.file || node.fullPath || 'file';
-                nodeContent = `File: ${fileName}\n\nContent:\n${node.loadedContent.trim()}`;
-                console.log(`📄 Using loaded file content for ancestor (${node.loadedContent.length} chars)`);
-            } else if (node.text && typeof node.text === 'string' && node.text.trim()) {
+                const label = node.text || node.file || node.fullPath || 'file';
+                nodeContent = `File: ${label}\n\nContent:\n${node.loadedContent.trim()}`;
+            } else if (node.text && node.text.trim()) {
                 nodeContent = node.text.trim();
-            } else if (node.file && typeof node.file === 'string' && node.file.trim()) {
+            } else if (node.file && node.file.trim()) {
                 nodeContent = node.file.trim();
-            } else if (node.fullPath && typeof node.fullPath === 'string' && node.fullPath.trim()) {
+            } else if (node.fullPath && node.fullPath.trim()) {
                 nodeContent = node.fullPath.trim();
             }
-            
             if (nodeContent) {
-                messages.push({ role: "user", content: nodeContent });
-                console.log('📎 Added ancestor node content:', nodeContent.substring(0, 100) + '...');
-            } else {
-                console.log('⚠️ Skipping ancestor node - no valid content:', { id: node.id, text: node.text });
+                messages.push({ role: 'user', content: nodeContent });
             }
         });
-        console.log('📎 Using', connectedNodes.length, 'connected nodes as conversation history');
     }
 
-    // Add the current selected node as the latest message
-    // If we have file content, include it directly
+    // Current node content
     let content = selectedNodeText || 'Generate ideas';
     if (fileContent && fileContent.trim()) {
         content = `${selectedNodeText || 'Analyze file'}\n\nFile content:\n${fileContent}`;
-        console.log('📄 Including file content with node text');
     }
+    if (!content || !content.trim()) content = 'Generate creative ideas';
 
-    // Ensure we always have valid content
-    if (!content || typeof content !== 'string' || !content.trim()) {
-        content = 'Generate creative ideas';
-    }
+    messages.push({ role: 'user', content });
 
-    messages.push({ role: "user", content: content });
-
-    console.log('💬 Message history:', messages.map(m => (m.content || '').substring(0, 100) + ((m.content || '').length > 100 ? '...' : '')));
+    console.log('💬 Sending', messages.length, 'message(s) to', model);
 
     try {
-        // Use fetch API with configurable base URL
         const apiUrl = `${baseUrl}/chat/completions`;
-        console.log('📡 Making request to:', apiUrl);
-        
+
+        const headers = {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+        };
+
+        // OpenRouter-specific headers (ignored by other providers)
+        if (baseUrl.includes('openrouter.ai')) {
+            headers['HTTP-Referer'] = 'https://vscode-infinite-canvas.com';
+            headers['X-Title'] = 'VS Code Infinite Canvas';
+        }
+
         const response = await fetch(apiUrl, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json',
-                'HTTP-Referer': 'https://vscode-infinite-canvas.com',
-                'X-Title': 'VS Code Infinite Canvas'
-            },
+            headers,
             body: JSON.stringify({
-                model: model,
-                messages: messages,
-                temperature: 0.7
+                model,
+                messages,
+                temperature: 0.7,
+                max_tokens: 2048,
             })
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errText = await response.text().catch(() => '');
+            throw new Error(`HTTP ${response.status}: ${errText || response.statusText}`);
         }
 
         const data = await response.json();
-        const responseText = data.choices[0].message.content;
-        console.log('✅ OpenRouter response:', responseText);
+        const responseText = data?.choices?.[0]?.message?.content;
 
-        // Return the AI response as a single idea (one node)
-        const trimmedResponse = responseText.trim();
-
-        if (!trimmedResponse) {
-            throw new Error('OpenRouter generated empty response');
+        if (!responseText || !responseText.trim()) {
+            throw new Error('AI returned an empty response. Try a different model or rephrasing your prompt.');
         }
 
-        return [trimmedResponse]; // Always return as array with single item
+        console.log('✅ AI response received (', responseText.length, 'chars )');
+        return [responseText.trim()]; // Always return as single-element array = one child node
 
     } catch (apiError) {
-        console.error('❌ OpenRouter API Error:', apiError.message);
+        console.error('❌ AI API Error:', apiError.message);
         throw apiError;
     }
 }
 
+// ============================================================================
+// PUBLIC HELPERS
+// ============================================================================
 
-// Set OpenRouter API key (called from VS Code extension)
 export function setOpenRouterApiKey(apiKey) {
-    OPENROUTER_API_KEY = apiKey;
-    console.log('🔑 OpenRouter API key updated');
+    _cachedApiKey = apiKey;
+    if (apiKey) localStorage.setItem('ai-api-key', apiKey);
+    console.log('🔑 API key set programmatically');
 }
 
-// Expose the function globally for UI access
+// Expose globally for UI panel access
 if (typeof window !== 'undefined') {
     window.setOpenRouterApiKey = setOpenRouterApiKey;
 }
+
+// ============================================================================
+// SUGGESTED MODEL PRESETS
+// Use these in the AI config panel "Models" field (comma-separated)
+// All available via OpenRouter: https://openrouter.ai/models
+// ============================================================================
+export const MODEL_PRESETS = {
+    fast: [
+        'google/gemini-2.0-flash-001',
+        'anthropic/claude-3.5-haiku',
+        'openai/gpt-4o-mini',
+    ],
+    powerful: [
+        'anthropic/claude-sonnet-4-5',
+        'google/gemini-2.5-pro',
+        'openai/gpt-4o',
+        'x-ai/grok-3',
+    ],
+    reasoning: [
+        'qwen/qwen3-235b-a22b-thinking',
+        'anthropic/claude-opus-4-5',
+        'google/gemini-2.5-pro',
+        'tngtech/deepseek-r1t2-chimera:free',
+    ],
+    free: [
+        'tngtech/deepseek-r1t2-chimera:free',
+        'google/gemini-2.0-flash-thinking-exp:free',
+        'meta-llama/llama-4-maverick:free',
+    ]
+};
