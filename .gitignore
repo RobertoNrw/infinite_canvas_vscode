@@ -1,7 +1,1 @@
-out
-node_modules
-.vscode-test/
-*.vsix
-.DS_Store
-
-sharing
+Nothing needs to be added to the .gitignore file based on the provided changes. The listed files (RenderCache.js, SpatialIndex.js, InfiniteCanvasSimple.js) are JavaScript source files that should be tracked in version control.
