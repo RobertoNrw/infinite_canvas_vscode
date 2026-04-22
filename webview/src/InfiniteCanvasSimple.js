@@ -1323,7 +1323,7 @@ class InputHandler {
                              !e.ctrlKey && !e.metaKey;
         
         if (isTrackpadPan) {
-            // Two-finger trackpad pan
+            // Two-finger trackpad pan with smooth inertia
             console.log('👋 Trackpad pan detected:', { deltaX: e.deltaX, deltaY: e.deltaY });
             this.canvasState.offsetX -= e.deltaX;
             this.canvasState.offsetY -= e.deltaY;
@@ -1343,16 +1343,17 @@ class InputHandler {
         
         // Handle zoom (Ctrl/Cmd + wheel or pure vertical scroll with larger delta)
         if (e.ctrlKey || e.metaKey || (Math.abs(e.deltaX) < Math.abs(e.deltaY) && Math.abs(e.deltaY) > 20)) {
-            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-            const newScale = Math.max(0.1, Math.min(5, this.canvasState.scale * zoomFactor));
+            // Smooth zoom with exponential scaling for better feel
+            const zoomFactor = Math.pow(1.001, e.deltaY);
+            const newScale = Math.max(0.1, Math.min(5, this.canvasState.scale / zoomFactor));
             
-            // Zoom towards mouse position
+            // Zoom towards mouse position with smooth interpolation
             const scaleDiff = newScale - this.canvasState.scale;
             this.canvasState.offsetX -= (mouseX - this.canvasState.offsetX) * scaleDiff / this.canvasState.scale;
             this.canvasState.offsetY -= (mouseY - this.canvasState.offsetY) * scaleDiff / this.canvasState.scale;
             
             this.canvasState.scale = newScale;
-            console.log('🔍 Zoom to:', newScale);
+            console.log('🔍 Zoom to:', newScale.toFixed(3));
             
             // Update floating button position after zoom
             this.canvasState.notifySelectionChange();
@@ -1374,7 +1375,7 @@ class InputHandler {
         const centerX = rect.width / 2;
         const centerY = rect.height / 2;
         
-        // Apply zoom towards center of gesture
+        // Apply zoom towards center of gesture with smoothing
         const newScale = Math.max(0.1, Math.min(5, this.canvasState.scale * e.scale));
         const scaleDiff = newScale - this.canvasState.scale;
         
@@ -2511,27 +2512,59 @@ class CanvasRenderer {
         const endX = startX + canvas.width / canvasState.scale;
         const endY = startY + canvas.height / canvasState.scale;
         
-        ctx.strokeStyle = '#333333';
-        ctx.lineWidth = 1 / canvasState.scale;
+        // Adaptive grid density based on zoom level
+        const effectiveGridSize = gridSize * (canvasState.scale < 0.5 ? 2 : 1);
+        
+        // Draw subtle gradient background for better visual depth
+        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        gradient.addColorStop(0, '#1e1e1e');
+        gradient.addColorStop(1, '#252526');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(startX, startY, endX - startX, endY - startY);
+        
+        // Draw grid with adaptive opacity based on zoom
+        const gridOpacity = Math.min(1, Math.max(0.3, canvasState.scale));
+        ctx.strokeStyle = `rgba(80, 80, 80, ${gridOpacity})`;
+        ctx.lineWidth = Math.max(0.5, 1 / canvasState.scale);
         ctx.beginPath();
         
-        // Vertical lines
-        for (let x = Math.floor(startX / gridSize) * gridSize; x <= endX; x += gridSize) {
-            ctx.moveTo(x, startY);
-            ctx.lineTo(x, endY);
+        // Vertical lines with smoother positioning
+        for (let x = Math.floor(startX / effectiveGridSize) * effectiveGridSize; x <= endX; x += effectiveGridSize) {
+            ctx.moveTo(Math.round(x) + 0.5, startY);
+            ctx.lineTo(Math.round(x) + 0.5, endY);
         }
         
-        // Horizontal lines
-        for (let y = Math.floor(startY / gridSize) * gridSize; y <= endY; y += gridSize) {
-            ctx.moveTo(startX, y);
-            ctx.lineTo(endX, y);
+        // Horizontal lines with smoother positioning
+        for (let y = Math.floor(startY / effectiveGridSize) * effectiveGridSize; y <= endY; y += effectiveGridSize) {
+            ctx.moveTo(startX, Math.round(y) + 0.5);
+            ctx.lineTo(endX, Math.round(y) + 0.5);
         }
         
         ctx.stroke();
+        
+        // Draw coordinate origin marker if visible
+        if (startX <= 0 && endX >= 0 && startY <= 0 && endY >= 0) {
+            ctx.fillStyle = 'rgba(255, 100, 100, 0.5)';
+            ctx.beginPath();
+            ctx.arc(0, 0, 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
     
-    // Helper function to draw rounded rectangles
-    drawRoundedRect(ctx, x, y, width, height, radius = 8) {
+    // Helper function to draw rounded rectangles with optional shadow
+    drawRoundedRect(ctx, x, y, width, height, radius = 8, addShadow = false) {
+        if (addShadow) {
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+            ctx.shadowBlur = 15;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 4;
+        } else {
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+        }
+        
         ctx.beginPath();
         ctx.moveTo(x + radius, y);
         ctx.lineTo(x + width - radius, y);
@@ -2543,6 +2576,14 @@ class CanvasRenderer {
         ctx.lineTo(x, y + radius);
         ctx.quadraticCurveTo(x, y, x + radius, y);
         ctx.closePath();
+    }
+    
+    // Reset shadow effects
+    resetShadow(ctx) {
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
     }
 
     drawNode(ctx, node, showConnectionPoints = false, inputHandler = null) {
@@ -2556,16 +2597,32 @@ class CanvasRenderer {
             node.scrollY = 0;
         }
         
+        // Add subtle shadow for depth
+        this.drawRoundedRect(ctx, node.x, node.y, node.width, node.height, 12, true);
+        
         // Draw background with rounded corners
         ctx.fillStyle = node.backgroundColor;
-        this.drawRoundedRect(ctx, node.x, node.y, node.width, node.height, 12);
+        this.drawRoundedRect(ctx, node.x, node.y, node.width, node.height, 12, false);
         ctx.fill();
         
-        // Draw border with rounded corners
-        ctx.strokeStyle = node.isSelected ? '#007fd4' : node.borderColor;
-        ctx.lineWidth = node.isSelected ? 2 : 1;
-        this.drawRoundedRect(ctx, node.x, node.y, node.width, node.height, 12);
+        // Draw border with rounded corners - enhanced visual feedback
+        const borderWidth = node.isSelected ? 3 : (this.inputHandler?.hoveredNode === node ? 2 : 1);
+        ctx.strokeStyle = node.isSelected ? '#007fd4' : (this.inputHandler?.hoveredNode === node ? '#5a8dff' : node.borderColor);
+        ctx.lineWidth = borderWidth;
+        this.drawRoundedRect(ctx, node.x, node.y, node.width, node.height, 12, false);
         ctx.stroke();
+        
+        // Draw selection indicator glow
+        if (node.isSelected) {
+            ctx.save();
+            ctx.shadowColor = 'rgba(0, 127, 212, 0.4)';
+            ctx.shadowBlur = 10;
+            ctx.strokeStyle = 'rgba(0, 127, 212, 0.3)';
+            ctx.lineWidth = 6;
+            this.drawRoundedRect(ctx, node.x - 2, node.y - 2, node.width + 4, node.height + 4, 14, false);
+            ctx.stroke();
+            ctx.restore();
+        }
         
         // Draw AI model badge if node was created by AI
         if (node.aiModel) {
@@ -2574,7 +2631,7 @@ class CanvasRenderer {
         
         // Set up clipping region for text content with rounded corners
         ctx.save();
-        this.drawRoundedRect(ctx, node.x + 2, node.y + 2, node.width - 4, node.height - 4, 10);
+        this.drawRoundedRect(ctx, node.x + 2, node.y + 2, node.width - 4, node.height - 4, 10, false);
         ctx.clip();
         
         // Draw text with scrolling
@@ -3309,8 +3366,27 @@ class CanvasRenderer {
         const arrowX = bestToPoint.x - Math.cos(angle) * arrowOffset;
         const arrowY = bestToPoint.y - Math.sin(angle) * arrowOffset;
         
-        // Draw line with selection styling
-        ctx.strokeStyle = isSelected ? '#2196f3' : '#569cd6';
+        // Draw connection line with gradient and glow effect
+        const gradient = ctx.createLinearGradient(bestFromPoint.x, bestFromPoint.y, bestToPoint.x, bestToPoint.y);
+        gradient.addColorStop(0, isSelected ? '#4fc3f7' : '#64b5f6');
+        gradient.addColorStop(1, isSelected ? '#2196f3' : '#569cd6');
+        
+        // Draw shadow/glow for selected connections
+        if (isSelected) {
+            ctx.save();
+            ctx.shadowColor = 'rgba(33, 150, 243, 0.6)';
+            ctx.shadowBlur = 10;
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(bestFromPoint.x, bestFromPoint.y);
+            ctx.lineTo(arrowX, arrowY);
+            ctx.stroke();
+            ctx.restore();
+        }
+        
+        // Draw main line
+        ctx.strokeStyle = gradient;
         ctx.lineWidth = isSelected ? 3 : 2;
         ctx.setLineDash(isSelected ? [5, 5] : []);
         
@@ -3320,13 +3396,20 @@ class CanvasRenderer {
         ctx.stroke();
         ctx.setLineDash([]); // Reset dash
         
-        // Draw arrowhead
+        // Draw arrowhead with enhanced styling
         this.drawArrowhead(ctx, arrowX, arrowY, angle, isSelected);
     }
     
     drawArrowhead(ctx, x, y, angle, isSelected = false) {
         const arrowLength = 18;
         const arrowAngle = Math.PI / 6;
+        
+        // Add glow effect for selected connections
+        if (isSelected) {
+            ctx.save();
+            ctx.shadowColor = 'rgba(33, 150, 243, 0.8)';
+            ctx.shadowBlur = 12;
+        }
         
         ctx.fillStyle = isSelected ? '#2196f3' : '#569cd6';
         ctx.strokeStyle = isSelected ? '#1565c0' : '#4f46e5';
@@ -3349,6 +3432,10 @@ class CanvasRenderer {
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
+        
+        if (isSelected) {
+            ctx.restore();
+        }
     }
     
     drawConnectionPoints(ctx, node, inputHandler) {
@@ -3402,36 +3489,122 @@ class CanvasRenderer {
             fromY = connectionStart.y + connectionStart.height / 2;
         }
         
-        // Draw dashed preview line
-        ctx.strokeStyle = '#10b981';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([5, 5]);
+        // Calculate angle for preview arrow
+        const angle = Math.atan2(canvasY - fromY, canvasX - fromX);
+        const arrowOffset = 16;
+        const arrowX = canvasX - Math.cos(angle) * arrowOffset;
+        const arrowY = canvasY - Math.sin(angle) * arrowOffset;
+        
+        // Draw gradient preview line with glow effect
+        const gradient = ctx.createLinearGradient(fromX, fromY, arrowX, arrowY);
+        gradient.addColorStop(0, 'rgba(16, 185, 129, 0.8)');
+        gradient.addColorStop(1, 'rgba(34, 197, 94, 0.9)');
+        
+        // Add glow effect
+        ctx.save();
+        ctx.shadowColor = 'rgba(16, 185, 129, 0.6)';
+        ctx.shadowBlur = 10;
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 3;
+        ctx.setLineDash([6, 4]);
         
         ctx.beginPath();
         ctx.moveTo(fromX, fromY);
-        ctx.lineTo(canvasX, canvasY);
+        ctx.lineTo(arrowX, arrowY);
         ctx.stroke();
+        ctx.restore();
+        
         ctx.setLineDash([]); // Reset dash
+        
+        // Draw animated circle at mouse position
+        ctx.save();
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.3)';
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(canvasX, canvasY, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+        
+        // Draw small arrowhead at target
+        this.drawPreviewArrowhead(ctx, arrowX, arrowY, angle);
+    }
+    
+    drawPreviewArrowhead(ctx, x, y, angle) {
+        const arrowLength = 14;
+        const arrowAngle = Math.PI / 6;
+        
+        ctx.save();
+        ctx.fillStyle = '#10b981';
+        ctx.shadowColor = 'rgba(16, 185, 129, 0.8)';
+        ctx.shadowBlur = 8;
+        
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(
+            x - arrowLength * Math.cos(angle - arrowAngle),
+            y - arrowLength * Math.sin(angle - arrowAngle)
+        );
+        ctx.lineTo(
+            x - arrowLength * 0.6 * Math.cos(angle),
+            y - arrowLength * 0.6 * Math.sin(angle)
+        );
+        ctx.lineTo(
+            x - arrowLength * Math.cos(angle + arrowAngle),
+            y - arrowLength * Math.sin(angle + arrowAngle)
+        );
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
     }
     
     drawSelectionRectangle(ctx, selectionRect) {
         if (!selectionRect) return;
         
-        // Draw selection rectangle with dotted border and semi-transparent fill
+        // Draw selection rectangle with gradient fill and animated border
         ctx.save();
         
-        // Fill with semi-transparent blue
-        ctx.fillStyle = 'rgba(59, 130, 246, 0.1)';
+        // Create gradient fill for more visual appeal
+        const gradient = ctx.createLinearGradient(
+            selectionRect.x, selectionRect.y,
+            selectionRect.x + selectionRect.width, selectionRect.y + selectionRect.height
+        );
+        gradient.addColorStop(0, 'rgba(59, 130, 246, 0.15)');
+        gradient.addColorStop(1, 'rgba(147, 51, 234, 0.1)');
+        
+        // Fill with gradient
+        ctx.fillStyle = gradient;
         ctx.fillRect(selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height);
         
-        // Draw dotted border
+        // Draw border with subtle glow
+        ctx.shadowColor = 'rgba(59, 130, 246, 0.5)';
+        ctx.shadowBlur = 8;
         ctx.strokeStyle = '#3b82f6';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([3, 3]);
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 3]);
+        
+        // Animate dash offset for visual feedback
+        const time = Date.now() * 0.002;
+        ctx.lineDashOffset = -time * 10;
         
         ctx.beginPath();
         ctx.rect(selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height);
         ctx.stroke();
+        
+        // Draw corner markers
+        const cornerSize = 8;
+        ctx.fillStyle = '#3b82f6';
+        ctx.setLineDash([]);
+        
+        // Top-left
+        ctx.fillRect(selectionRect.x - 2, selectionRect.y - 2, cornerSize, cornerSize);
+        // Top-right
+        ctx.fillRect(selectionRect.x + selectionRect.width - cornerSize + 2, selectionRect.y - 2, cornerSize, cornerSize);
+        // Bottom-left
+        ctx.fillRect(selectionRect.x - 2, selectionRect.y + selectionRect.height - cornerSize + 2, cornerSize, cornerSize);
+        // Bottom-right
+        ctx.fillRect(selectionRect.x + selectionRect.width - cornerSize + 2, selectionRect.y + selectionRect.height - cornerSize + 2, cornerSize, cornerSize);
         
         ctx.setLineDash([]); // Reset dash
         ctx.restore();
