@@ -98,7 +98,7 @@
 <button class="tb-btn" id="btn-png" title="PNG Export">&#8595; PNG</button><button class="tb-btn" id="btn-export" title="JSON Export">&#8595; JSON</button><button class="tb-btn" id="btn-import" title="Import">&#8593;</button><div class="tb-sep"></div>
 <button class="tb-btn" id="btn-theme" title="Theme">&#9681;</button><button class="tb-btn" id="btn-clear" title="Leeren">&#128465;</button>
 </div>
-<div id="statusbar" style="display:none"><span><b id="node-count">0</b> Nodes</span><span><b id="conn-count">0</b> Conn</span><span id="hint"><b>Dblclick</b>=Node &middot; <b>Shift+Drag</b>=Connect &middot; <b>&#8984;K</b>=Suche &middot; <b>D</b>=Dup</span><span id="zoom-display" title="Reset">100%</span><span class="zoom-controls"><button id="zoom-out">&#8722;</button><button id="zoom-in">+</button></span></div>
+<div id="statusbar" style="display:none"><span><b id="node-count">0</b> Nodes</span><span><b id="conn-count">0</b> Conn</span><span id="hint"><b>Dblclick</b>=Node &middot; <b>Punkt ziehen</b>=Verbinden &middot; <b>Shift+Drag</b>=Pan &middot; <b>Leertaste</b>=Pan &middot; <b>&#8984;K</b>=Suche</span><span id="zoom-display" title="Reset">100%</span><span class="zoom-controls"><button id="zoom-out">&#8722;</button><button id="zoom-in">+</button></span></div>
 <div id="ctx-menu"></div><div id="toast"></div>
 <div id="cl-editor"><div id="cl-editor-header"><span>Checkliste</span><button id="cl-close">&#10005;</button></div><input id="cl-title-input" placeholder="Titel&#8230;" spellcheck="false"><div id="cl-items-list"></div><button id="cl-add-btn">+ Element</button><div id="cl-footer"><button id="cl-cancel">Abbrechen</button><button id="cl-save">Speichern</button></div></div>
 <div id="spotlight"><div id="spotlight-box"><input id="spotlight-input" placeholder="Nodes suchen&#8230; (Esc)"><div id="spotlight-results"></div></div></div>
@@ -458,7 +458,7 @@ if(!node.locked){const rh=node._rh?.find(h=>cx>=h.x&&cx<=h.x+h.w&&cy>=h.y&&cy<=h
 if(node._sb){const sb=node._sb;if(cx>=sb.x&&cx<=sb.x+sb.w&&cy>=sb.y&&cy<=sb.y+sb.h){isSB=true;sbN=node;sbOff=cy-sb.tY;isDrag=false;lMX=mx;lMY=my;return;}}
 if(e.ctrlKey||e.metaKey)togS(node);else if(e.shiftKey&&selN.length>0)addS(node);else selOne(node);
 if(node.isSelected&&!node.locked){isND=true;dNode=node;dOX=cx-node.x;dOY=cy-node.y;}
-}else{if(e.button===1||e.altKey){isPan=true;if(!e.ctrlKey&&!e.metaKey&&!e.shiftKey&&!e.altKey)clrS();}else{if(!e.ctrlKey&&!e.metaKey&&!e.shiftKey)clrS();isSel=true;sStart={x:cx,y:cy};sRect=null;}}
+}else{if(e.button===1||e.altKey||(e.shiftKey&&!isConn)){isPan=true;if(!e.ctrlKey&&!e.metaKey&&!e.shiftKey&&!e.altKey)clrS();}else{if(!e.ctrlKey&&!e.metaKey&&!e.shiftKey)clrS();isSel=true;sStart={x:cx,y:cy};sRect=null;}}
 lMX=mx;lMY=my;isDrag=true;moved=false;sR();});
 
 canvas.addEventListener('mousemove',e=>{if(window.PointerEvent)return;const r=canvas.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;const{x:cx,y:cy}=s2c(mx,my);
@@ -500,20 +500,27 @@ if(n){if(n.type==='checklist')openCLEd(n);else if(n.type==='table')openTblEd(n);
 // Pointer Events
 canvas.addEventListener('pointerdown',e=>{if(!window.PointerEvent||!canHandlePointer(e))return;activePointerId=e.pointerId;try{canvas.setPointerCapture(e.pointerId);}catch(_){ }closeDD();closeCM();closeCLE();closeTblEd();
 const{mx,my}=getLocalPoint(e);const{x:cx,y:cy}=s2c(mx,my);onCv=true;const node=nAt(cx,cy);
-if(!node){const c=cAt(cx,cy);if(c){clrS();selC=c;sR();return;}}
+if(!node){const c=cAt(cx,cy);if(c){clrS();selC=c;sR();return;}
+// Shift+Drag im leeren Canvas für Panning
+if(e.shiftKey){isPan=true;clrS();lMX=mx;lMY=my;isDrag=true;moved=false;sR();return;}}
 if(node){
 if(node.type==='checklist'&&!e.shiftKey){const idx=chkAt(node,cx,cy);if(idx>=0){node.typeData.items[idx].checked=!node.typeData.items[idx].checked;pH();aS();sR();return;}}
-const cp=cpAt(node,cx,cy);if(e.shiftKey&&cp){isConn=true;cStart=node;cStartPt=cp;clrS();isDrag=false;lMX=mx;lMY=my;sR();return;}
+const cp=cpAt(node,cx,cy);
+// Connection starten OHNE Shift - einfach auf Punkt klicken
+if(cp){isConn=true;cStart=node;cStartPt=cp;clrS();isDrag=false;lMX=mx;lMY=my;sR();return;}
 if(!node.locked){const rh=node._rh?.find(h=>cx>=h.x&&cx<=h.x+h.w&&cy>=h.y&&cy<=h.y+h.h);if(rh&&!e.shiftKey){isRz=true;rzN=node;rzH=rh;rzSX=cx;rzSY=cy;rzSW=node.width;rzSH=node.height;rzNX=node.x;rzNY=node.y;isDrag=false;lMX=mx;lMY=my;return;}}
 if(node._sb){const sb=node._sb;if(cx>=sb.x&&cx<=sb.x+sb.w&&cy>=sb.y&&cy<=sb.y+sb.h){isSB=true;sbN=node;sbOff=cy-sb.tY;isDrag=false;lMX=mx;lMY=my;return;}}
 if(e.ctrlKey||e.metaKey)togS(node);else if(e.shiftKey&&selN.length>0)addS(node);else selOne(node);
 if(node.isSelected&&!node.locked){isND=true;dNode=node;dOX=cx-node.x;dOY=cy-node.y;}
-}else{if(e.button===1||e.altKey){isPan=true;if(!e.ctrlKey&&!e.metaKey&&!e.shiftKey&&!e.altKey)clrS();}else{if(!e.ctrlKey&&!e.metaKey&&!e.shiftKey)clrS();isSel=true;sStart={x:cx,y:cy};sRect=null;}}
+}else{
+// Alt oder Mittlere Maustaste für Panning
+if(e.button===1||e.altKey){isPan=true;if(!e.ctrlKey&&!e.metaKey&&!e.shiftKey&&!e.altKey)clrS();}
+else{if(!e.ctrlKey&&!e.metaKey&&!e.shiftKey)clrS();isSel=true;sStart={x:cx,y:cy};sRect=null;}}
 lMX=mx;lMY=my;isDrag=true;moved=false;sR();});
 
 canvas.addEventListener('pointermove',e=>{if(!window.PointerEvent||activePointerId!==e.pointerId)return;const{mx,my}=getLocalPoint(e);const{x:cx,y:cy}=s2c(mx,my);
 hNode=nAt(cx,cy);hCP=hNode?cpAt(hNode,cx,cy):null;
-if(isRz)setCursor(rzH.cursor);else if(isSB)setCursor('ns-resize');else if(isConn)setCursor('crosshair');else if(hCP&&e.shiftKey)setCursor('copy');else if(hNode){const rh=hNode._rh?.find(h=>cx>=h.x&&cx<=h.x+h.w&&cy>=h.y&&cy<=h.y+h.h);setCursor(rh?rh.cursor:(hNode.locked?'not-allowed':'grab'));}else setCursor('default');
+if(isRz)setCursor(rzH.cursor);else if(isSB)setCursor('ns-resize');else if(isConn){setCursor('crosshair');}else if(hCP)setCursor('copy');else if(hNode){const rh=hNode._rh?.find(h=>cx>=h.x&&cx<=h.x+h.w&&cy>=h.y&&cy<=h.y+h.h);setCursor(rh?rh.cursor:(hNode.locked?'not-allowed':'grab'));}else if(isPan)setCursor('grabbing');else setCursor('default');
 const dx=mx-lMX,dy=my-lMY;if(Math.abs(dx)>1||Math.abs(dy)>1)moved=true;applyDrag(cx,cy,dx,dy);lMX=mx;lMY=my;sR();});
 
 canvas.addEventListener('pointerup',e=>{if(!window.PointerEvent||activePointerId!==e.pointerId)return;
@@ -533,8 +540,10 @@ canvas.addEventListener('lostpointercapture',()=>{activePointerId=null;});
 document.addEventListener('keydown',e=>{const tag=document.activeElement?.tagName;if(tag==='TEXTAREA'||tag==='INPUT')return;
 if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();openSP();return;}
 if(e.key==='Escape'){if(document.getElementById('spotlight').classList.contains('open')){closeSP();e.preventDefault();return;}if(document.getElementById('tpl-picker').classList.contains('open')){closeTPL();e.preventDefault();return;}if(isConn){isConn=false;cStart=null;cStartPt=null;setCursor('default');sR();}closeCM();closeDD();closeCLE();closeTblEd();e.preventDefault();return;}
+if(e.key===' '&&!isDrag&&!isPan){e.preventDefault();isPan=true;clrS();setCursor('grabbing');return;}
 const step=e.shiftKey?10:1;
 switch(e.key){
+case' ':if(isPan){isPan=false;setCursor('default');}break;
 case'Delete':case'Backspace':if(selC){delC(selC);e.preventDefault();return;}if(selN.length){[...selN].forEach(n=>delN(n));e.preventDefault();}break;
 case'a':case'A':if(e.ctrlKey||e.metaKey){clrS();nodes.forEach(n=>addS(n));sR();e.preventDefault();}break;
 case'z':case'Z':if(e.ctrlKey||e.metaKey){e.shiftKey?redo():undo();e.preventDefault();}break;
