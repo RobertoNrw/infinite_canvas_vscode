@@ -1,5 +1,9 @@
 // Simplified Infinite Canvas for VS Code Extension
 // Core functionality with AI integrations
+// Optimized with spatial indexing and render caching
+
+import { SpatialHashGrid } from './SpatialIndex.js';
+import { RenderCache } from './RenderCache.js';
 
 export class InfiniteCanvas {
     constructor(canvasId) {
@@ -22,7 +26,12 @@ export class InfiniteCanvas {
         
         // Initialize canvas state
         this.canvasState = new CanvasState();
-        this.inputHandler = new InputHandler(this.canvas, this.canvasState);
+        
+        // Initialize performance optimizations
+        this.spatialGrid = new SpatialHashGrid(100); // 100px cell size
+        this.renderCache = new RenderCache();
+        
+        this.inputHandler = new InputHandler(this.canvas, this.canvasState, this.spatialGrid);
         this.renderer = new CanvasRenderer();
         
         // Initialize AI functionality
@@ -43,6 +52,8 @@ export class InfiniteCanvas {
         
         console.log('📊 Canvas state created:', this.canvasState);
         console.log('🖱️ Input handler created:', this.inputHandler);
+        console.log('⚡ Spatial grid initialized:', this.spatialGrid);
+        console.log('🎨 Render cache initialized:', this.renderCache);
         
         // Set up canvas and render system first
         this.setupCanvas();
@@ -141,6 +152,16 @@ export class InfiniteCanvas {
         this.canvas.width = rect.width;
         this.canvas.height = rect.height;
         
+        // Initialize render cache with new dimensions
+        if (this.renderCache) {
+            this.renderCache.initialize(rect.width, rect.height);
+        }
+        
+        // Invalidate grid cache when canvas resizes
+        if (this.renderCache) {
+            this.renderCache.invalidateGrid();
+        }
+        
         // Force re-render
         if (this.requestRender) {
             this.requestRender();
@@ -196,7 +217,7 @@ export class InfiniteCanvas {
     
     render() {
         try {
-            this.renderer.render(this.ctx, this.canvas, this.canvasState, this.inputHandler);
+            this.renderer.render(this.ctx, this.canvas, this.canvasState, this.inputHandler, this.renderCache);
         } catch (error) {
             console.error('Render error:', error);
             // Don't request more renders if there's an error
@@ -206,7 +227,7 @@ export class InfiniteCanvas {
 
 // Simplified Canvas State Management
 class CanvasState {
-    constructor() {
+    constructor(spatialGrid = null) {
         this.nodes = [];
         this.connections = [];
         this.selectedNodes = [];
@@ -222,6 +243,9 @@ class CanvasState {
         
         // State change callback for VS Code integration
         this.onStateChange = null;
+        
+        // Spatial index reference (set externally by InfiniteCanvas)
+        this.spatialGrid = spatialGrid;
     }
     
     createNode(text = 'New Node', x = 100, y = 100) {
@@ -244,6 +268,12 @@ class CanvasState {
         };
         
         this.nodes.push(node);
+        
+        // Add to spatial grid if available
+        if (this.spatialGrid) {
+            this.spatialGrid.insert(node);
+        }
+        
         console.log('📊 Total nodes now:', this.nodes.length);
         console.log('📋 All nodes:', this.nodes);
         
@@ -354,6 +384,11 @@ class CanvasState {
     deleteNode(node) {
         const index = this.nodes.indexOf(node);
         if (index > -1) {
+            // Remove from spatial grid first
+            if (this.spatialGrid) {
+                this.spatialGrid.remove(node);
+            }
+            
             this.nodes.splice(index, 1);
             
             // Remove connections involving this node
@@ -469,7 +504,14 @@ class CanvasState {
     }
     
     getNodeAt(x, y) {
-        // Check nodes in reverse order (top to bottom)
+        // Use spatial grid for O(1) lookup if available
+        if (this.spatialGrid) {
+            const candidates = this.spatialGrid.queryPoint(x, y);
+            // Return topmost node (last in array)
+            return candidates.length > 0 ? candidates[candidates.length - 1] : null;
+        }
+        
+        // Fallback to linear search
         for (let i = this.nodes.length - 1; i >= 0; i--) {
             const node = this.nodes[i];
             if (x >= node.x && x <= node.x + node.width &&
@@ -478,6 +520,21 @@ class CanvasState {
             }
         }
         return null;
+    }
+    
+    getNodesInRect(x, y, width, height) {
+        // Use spatial grid for faster rectangle queries if available
+        if (this.spatialGrid) {
+            return this.spatialGrid.queryRect(x, y, width, height);
+        }
+        
+        // Fallback to linear search
+        return this.nodes.filter(node => {
+            return !(node.x > x + width || 
+                     node.x + node.width < x || 
+                     node.y > y + height || 
+                     node.y + node.height < y);
+        });
     }
     
     exportCanvasData() {
@@ -614,6 +671,11 @@ class CanvasState {
     }
     
     notifyStateChange() {
+        // Rebuild spatial grid when state changes significantly
+        if (this.spatialGrid) {
+            this.spatialGrid.rebuild(this.nodes);
+        }
+        
         if (this.onStateChange) {
             this.onStateChange();
         }
@@ -650,9 +712,10 @@ class CanvasState {
 
 // Simplified Input Handler
 class InputHandler {
-    constructor(canvas, canvasState) {
+    constructor(canvas, canvasState, spatialGrid = null) {
         this.canvas = canvas;
         this.canvasState = canvasState;
+        this.spatialGrid = spatialGrid; // Optional spatial grid for optimized lookups
         
         this.isDragging = false;
         this.isNodeDragging = false;
@@ -1091,10 +1154,15 @@ class InputHandler {
                 const deltaX = (canvasX - this.dragStartX) - this.draggedNode.x;
                 const deltaY = (canvasY - this.dragStartY) - this.draggedNode.y;
                 
-                // Move all selected nodes
+                // Move all selected nodes and update spatial grid
                 this.canvasState.selectedNodes.forEach(node => {
                     node.x += deltaX;
                     node.y += deltaY;
+                    
+                    // Update spatial grid for moved node
+                    if (this.spatialGrid) {
+                        this.spatialGrid.update(node);
+                    }
                 });
                 
                 this.canvasState.notifyStateChange();
@@ -2375,7 +2443,7 @@ class InputHandler {
 
 // Simplified Canvas Renderer
 class CanvasRenderer {
-    render(ctx, canvas, canvasState, inputHandler) {
+    render(ctx, canvas, canvasState, inputHandler, renderCache = null) {
         // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
@@ -2386,8 +2454,13 @@ class CanvasRenderer {
         ctx.translate(canvasState.offsetX, canvasState.offsetY);
         ctx.scale(canvasState.scale, canvasState.scale);
         
-        // Draw grid
-        this.drawGrid(ctx, canvasState, canvas);
+        // Draw grid (use cache if available)
+        if (renderCache) {
+            renderCache.renderGrid(ctx, canvasState, canvas, 
+                (gridCtx, state, c) => this.drawGrid(gridCtx, state, c));
+        } else {
+            this.drawGrid(ctx, canvasState, canvas);
+        }
         
         // Draw connections first (behind nodes)
         canvasState.connections.forEach(connection => {
