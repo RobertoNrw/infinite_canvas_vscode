@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Canvas v3.3 - Refactored</title>
+    
+    <!-- Refactored Styles: Modularized CSS -->
+    <link rel="stylesheet" href="styles/base.css">
+    <link rel="stylesheet" href="styles/ui.css">
+    <link rel="stylesheet" href="styles/canvas.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="vscode-light">
+
+    <!-- ==================== LEVEL 1: Hauptnavigation (z-index: 100) ==================== -->
+    
+    <!-- Toolbar -->
+    <div id="toolbar" class="toolbar" role="toolbar" aria-label="Hauptwerkzeugleiste">
+        <div class="toolbar-group">
+            <button class="btn btn-icon" id="btn-add-note" title="Note hinzufügen (N)" aria-label="Note hinzufügen">📝</button>
+            <button class="btn btn-icon" id="btn-add-sticky" title="Sticky Note hinzufügen (S)" aria-label="Sticky Note hinzufügen">🟨</button>
+            <button class="btn btn-icon" id="btn-add-checklist" title="Checkliste hinzufügen (C)" aria-label="Checkliste hinzufügen">✅</button>
+            <button class="btn btn-icon" id="btn-add-table" title="Tabelle hinzufügen (T)" aria-label="Tabelle hinzufügen">📊</button>
+            <button class="btn btn-icon" id="btn-add-link" title="Link hinzufügen (L)" aria-label="Link hinzufügen">🔗</button>
+            <button class="btn btn-icon" id="btn-add-group" title="Gruppe hinzufügen (G)" aria-label="Gruppe hinzufügen">📁</button>
+        </div>
+        
+        <div class="toolbar-divider"></div>
+        
+        <div class="toolbar-group">
+            <button class="btn btn-icon" id="btn-undo" title="Rückgängig (Ctrl+Z)" aria-label="Rückgängig">↩️</button>
+            <button class="btn btn-icon" id="btn-redo" title="Wiederherstellen (Ctrl+Y)" aria-label="Wiederherstellen">↪️</button>
+            <button class="btn btn-icon" id="btn-delete" title="Löschen (Entf)" aria-label="Löschen">🗑️</button>
+        </div>
+        
+        <div class="toolbar-divider"></div>
+        
+        <div class="toolbar-group">
+            <button class="btn btn-icon" id="btn-zoom-in" title="Vergrößern (+)" aria-label="Vergrößern">➕</button>
+            <button class="btn btn-icon" id="btn-zoom-out" title="Verkleinern (-)" aria-label="Verkleinern">➖</button>
+            <button class="btn btn-icon" id="btn-fit" title="Alles anzeigen (F)" aria-label="Alles anzeigen">🎯</button>
+        </div>
+        
+        <div class="toolbar-divider"></div>
+        
+        <div class="toolbar-group">
+            <button class="btn btn-primary" id="btn-save" title="Speichern (Ctrl+S)" aria-label="Speichern">
+                <span class="btn-text">💾 Speichern</span>
+            </button>
+            <button class="btn btn-icon" id="btn-spotlight" title="Suche (Ctrl+K)" aria-label="Suche öffnen">🔍</button>
+        </div>
+    </div>
+
+    <!-- Statusbar -->
+    <div id="statusbar" class="statusbar" role="status" aria-live="polite">
+        <span id="status-coords" aria-label="Koordinaten">x: 0, y: 0</span>
+        <span class="status-divider">|</span>
+        <span id="status-zoom" aria-label="Zoom-Level">100%</span>
+        <span class="status-divider">|</span>
+        <span id="status-selection" aria-label="Auswahl">Keine Auswahl</span>
+        <span class="status-divider">|</span>
+        <span id="status-snap" class="badge hidden" aria-label="Snap aktiv">SNAP</span>
+        <span id="status-lock" class="badge hidden" aria-label="Gespeichert">LOCKED</span>
+    </div>
+
+    <!-- Save Indicator -->
+    <div id="save-indicator" class="save-indicator hidden" aria-live="polite">
+        <span class="spinner"></span>
+        <span class="save-text">Speichern...</span>
+    </div>
+
+    <!-- ==================== LEVEL 2: Kontext-Panels (z-index: 90) ==================== -->
+    
+    <!-- Minimap -->
+    <div id="minimap-container" class="minimap-container" role="region" aria-label="Minimap">
+        <canvas id="minimap" aria-label="Minimap Vorschau"></canvas>
+        <div id="minimap-viewport" aria-hidden="true"></div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="context-menu hidden" role="menu" aria-label="Kontextmenü">
+        <div class="context-item" data-action="duplicate" role="menuitem">Duplizieren <span class="shortcut">Ctrl+D</span></div>
+        <div class="context-item" data-action="lock" role="menuitem">Sperren/Entsperren</div>
+        <div class="context-divider" role="separator"></div>
+        <div class="context-item" data-action="delete" role="menuitem" aria-label="Löschen">Löschen <span class="shortcut">Del</span></div>
+        <div class="context-item" data-action="bring-front" role="menuitem">In den Vordergrund</div>
+        <div class="context-item" data-action="send-back" role="menuitem">In den Hintergrund</div>
+        <div class="context-divider" role="separator"></div>
+        <div class="context-label">Farbe wählen</div>
+        <div class="color-row" role="group" aria-label="Farbauswahl">
+            <div class="color-dot" data-color="#FFD93D" style="background:#FFD93D" role="radio" aria-label="Gelb"></div>
+            <div class="color-dot" data-color="#6BCB77" style="background:#6BCB77" role="radio" aria-label="Grün"></div>
+            <div class="color-dot" data-color="#4D96FF" style="background:#4D96FF" role="radio" aria-label="Blau"></div>
+            <div class="color-dot" data-color="#FF6B6B" style="background:#FF6B6B" role="radio" aria-label="Rot"></div>
+            <div class="color-dot" data-color="#C77DFF" style="background:#C77DFF" role="radio" aria-label="Lila"></div>
+        </div>
+    </div>
+
+    <!-- ==================== LEVEL 3: Modale Overlays (z-index: 2000+) ==================== -->
+    
+    <!-- Spotlight Search -->
+    <div id="spotlight-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Suche">
+        <div class="spotlight-box">
+            <input type="text" 
+                   id="spotlight-input" 
+                   placeholder="Befehl suchen oder Node erstellen..." 
+                   autocomplete="off" 
+                   aria-label="Sucheingabe">
+            <div id="spotlight-results" class="spotlight-results" role="listbox" aria-label="Suchergebnisse"></div>
+            <div class="spotlight-hint">ESC zum Schließen • ENTER zum Auswählen • Pfeiltasten zum Navigieren</div>
+        </div>
+    </div>
+
+    <!-- Template Picker -->
+    <div id="tpl-picker-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Vorlagen auswählen">
+        <div class="tpl-picker-box">
+            <div class="tpl-header">
+                <h3>Vorlagen wählen</h3>
+                <button class="btn btn-icon btn-close" id="btn-close-tpl" aria-label="Schließen">✕</button>
+            </div>
+            <div id="tpl-grid" class="tpl-grid" role="listbox" aria-label="Vorlagen Liste">
+                <!-- Templates werden dynamisch von ui.js geladen -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Screen (für Backend-Sync) -->
+    <div id="pw-screen-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Passwort Eingabe">
+        <div class="pw-screen-box">
+            <div class="pw-logo">∞ <span>Canvas</span></div>
+            <h3>Backend Zugang</h3>
+            <p>Bitte API Key eingeben:</p>
+            <input type="password" 
+                   id="api-key-input" 
+                   placeholder="sk-..." 
+                   aria-label="API Key"
+                   autocomplete="off">
+            <div class="pw-error hidden" id="pw-error-msg">Ungültiger API Key</div>
+            <div class="pw-actions">
+                <button class="btn btn-primary" id="btn-save-pw">Speichern</button>
+                <button class="btn btn-secondary" id="btn-cancel-pw">Abbrechen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="toast-container" role="alert" aria-live="assertive" aria-atomic="true"></div>
+
+    <!-- ==================== Canvas Area ==================== -->
+    
+    <div id="canvas-wrapper" role="application" aria-label="Infinite Canvas">
+        <canvas id="main-canvas" aria-label="Zeichenfläche"></canvas>
+        <!-- Inline Editor Container (wird dynamisch für Textbearbeitung genutzt) -->
+        <div id="inline-editor-container" class="inline-editor hidden" role="textbox" aria-label="Texteditor"></div>
+    </div>
+
+    <!-- ==================== Scripts: Modularized ES Modules ==================== -->
+    <script type="module" src="js/bootstrap.js"></script>
+</body>
+</html>
