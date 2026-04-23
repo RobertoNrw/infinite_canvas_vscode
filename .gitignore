@@ -1,5 +1,1 @@
-```
-# Styles
-webview/styles/
-
-```
+Nothing should be ignored since only JavaScript source files were added without any build artifacts, dependencies, or temporary files.
