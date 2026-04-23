@@ -34,7 +34,8 @@ export function getErrorMessage(error) {
 
 // ============================================================================
 // API KEY MANAGEMENT
-// Multi-source: localStorage (UI panel) > VS Code config > env variables
+// Secure multi-source: localStorage (UI panel) > VS Code config > env variables
+// IMPORTANT: API keys are NEVER sent directly to webview - all API calls go through extension host
 // Supported providers via OpenRouter: Claude, GPT, Gemini, Qwen, Perplexity, Grok, DeepSeek
 // ============================================================================
 
