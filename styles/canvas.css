@@ -1,0 +1,533 @@
+/* Canvas-specific Styles - Layout, Cursors, Node/Connection Visuals */
+
+/* Canvas Container */
+#canvas-wrapper {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow: hidden;
+}
+
+#canvas-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background: var(--canvas-bg);
+}
+
+/* Main Canvas */
+#canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+    background: transparent;
+    border: none;
+    outline: none;
+    touch-action: none;
+}
+
+#canvas:active {
+    cursor: grabbing;
+}
+
+/* Canvas Cursor States */
+.canvas-cursor-panning {
+    cursor: grabbing !important;
+}
+
+.canvas-cursor-connecting {
+    cursor: crosshair !important;
+}
+
+.canvas-cursor-selecting {
+    cursor: default !important;
+}
+
+.canvas-cursor-resizing {
+    cursor: se-resize !important;
+}
+
+/* Node Base Styles */
+.node {
+    background: var(--vscode-input-background);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: var(--border-radius-lg);
+    color: var(--vscode-input-foreground);
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+/* Node Selection State */
+.node.selected {
+    border-color: var(--vscode-focusBorder);
+    box-shadow: 0 0 0 2px var(--vscode-focusBorder);
+}
+
+/* Node Hover State */
+.node:hover {
+    box-shadow: var(--shadow-md);
+}
+
+/* Node Locked State */
+.node.locked {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.node.locked .node-resize-handle {
+    display: none;
+}
+
+/* Node Types */
+.node-sticky {
+    background: rgba(255, 235, 59, 0.15);
+    border-color: rgba(255, 235, 59, 0.3);
+}
+
+.node-note {
+    background: var(--vscode-input-background);
+}
+
+.node-checklist {
+    background: rgba(76, 175, 80, 0.1);
+    border-color: rgba(76, 175, 80, 0.3);
+}
+
+.node-table {
+    background: rgba(33, 150, 243, 0.1);
+    border-color: rgba(33, 150, 243, 0.3);
+}
+
+.node-link {
+    background: rgba(156, 39, 176, 0.1);
+    border-color: rgba(156, 39, 176, 0.3);
+}
+
+.node-group {
+    background: rgba(158, 158, 158, 0.1);
+    border-color: rgba(158, 158, 158, 0.3);
+    border-style: dashed;
+}
+
+/* Node Resize Handles */
+.node-resize-handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: var(--vscode-focusBorder);
+    border: 1px solid var(--vscode-input-background);
+    border-radius: 50%;
+    bottom: -6px;
+    right: -6px;
+    cursor: se-resize;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.node.selected .node-resize-handle {
+    opacity: 1;
+}
+
+.node-resize-handle:hover {
+    transform: scale(1.2);
+}
+
+/* Node Connection Ports */
+.node-port {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: var(--vscode-terminal-ansiBlue);
+    border: 2px solid var(--vscode-input-background);
+    border-radius: 50%;
+    cursor: crosshair;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.node:hover .node-port,
+.node.connecting .node-port {
+    opacity: 1;
+}
+
+.node-port:hover {
+    transform: scale(1.3);
+    background: var(--vscode-focusBorder);
+}
+
+.node-port-source {
+    top: 50%;
+    left: -5px;
+    transform: translateY(-50%);
+}
+
+.node-port-target {
+    top: 50%;
+    right: -5px;
+    transform: translateY(-50%);
+}
+
+/* Node Content */
+.node-content {
+    padding: 12px;
+    overflow: hidden;
+}
+
+.node-content.scrollable {
+    overflow-y: auto;
+    max-height: 100%;
+}
+
+.node-title {
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.node-text {
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Checklist Node Items */
+.checklist-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 13px;
+}
+
+.checklist-checkbox {
+    width: 16px;
+    height: 16px;
+    margin-top: 1px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.checklist-text {
+    flex: 1;
+    line-height: 1.4;
+}
+
+.checklist-text.completed {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+/* Table Node */
+.table-node table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.table-node th,
+.table-node td {
+    border: 1px solid var(--vscode-input-border);
+    padding: 6px 8px;
+    text-align: left;
+}
+
+.table-node th {
+    background: var(--vscode-input-background);
+    font-weight: 600;
+}
+
+/* Link Node */
+.link-node a {
+    color: var(--vscode-terminal-ansiBlue);
+    text-decoration: underline;
+    word-break: break-all;
+}
+
+.link-node a:hover {
+    color: var(--vscode-focusBorder);
+}
+
+/* Group Node */
+.group-node {
+    background: transparent;
+}
+
+.group-node .node-content {
+    padding: 20px;
+}
+
+.group-label {
+    position: absolute;
+    top: -10px;
+    left: 16px;
+    background: var(--vscode-editor-background);
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--vscode-terminal-ansiBlue);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: var(--border-radius-sm);
+}
+
+/* Connection Styles */
+.connection {
+    stroke: var(--vscode-terminal-ansiBlue);
+    stroke-width: 2;
+    fill: none;
+    transition: stroke-width var(--transition-fast), stroke var(--transition-fast);
+}
+
+.connection:hover {
+    stroke: var(--vscode-focusBorder);
+    stroke-width: 3;
+    cursor: pointer;
+}
+
+.connection.selected {
+    stroke: var(--vscode-focusBorder);
+    stroke-width: 3;
+}
+
+.connection-temp {
+    stroke: var(--vscode-focusBorder);
+    stroke-width: 2;
+    stroke-dasharray: 5, 5;
+    opacity: 0.7;
+}
+
+/* Connection Label */
+.connection-label {
+    fill: var(--vscode-input-foreground);
+    font-size: 11px;
+    font-family: var(--font-family);
+    text-anchor: middle;
+    dominant-baseline: middle;
+    background: var(--vscode-editor-background);
+}
+
+.connection-label-bg {
+    fill: var(--vscode-editor-background);
+    stroke: var(--vscode-input-border);
+    stroke-width: 1;
+    rx: 3;
+    ry: 3;
+}
+
+/* Grid Styles */
+.grid-line {
+    stroke: var(--vscode-input-border);
+    stroke-width: 0.5;
+    opacity: 0.3;
+}
+
+.grid-line-major {
+    stroke: var(--vscode-input-border);
+    stroke-width: 1;
+    opacity: 0.5;
+}
+
+/* Snap Indicator */
+.snap-indicator {
+    stroke: var(--vscode-terminal-ansiYellow);
+    stroke-width: 1;
+    stroke-dasharray: 4, 4;
+    fill: none;
+}
+
+/* Selection Box */
+.selection-box {
+    fill: rgba(0, 127, 212, 0.1);
+    stroke: var(--vscode-focusBorder);
+    stroke-width: 1;
+    stroke-dasharray: 4, 2;
+}
+
+/* Minimap Canvas */
+.minimap-canvas-element {
+    background: var(--vscode-editor-background);
+}
+
+/* Loading State */
+.canvas-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--vscode-editor-background);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+}
+
+.canvas-loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--vscode-progressBar-background);
+    border-top: 4px solid var(--vscode-focusBorder);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Error State */
+.canvas-error {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--vscode-notifications-background);
+    border: 1px solid var(--vscode-terminal-ansiRed);
+    border-radius: var(--border-radius-md);
+    padding: 24px;
+    text-align: center;
+    max-width: 400px;
+    z-index: 500;
+}
+
+.canvas-error-icon {
+    font-size: 48px;
+    color: var(--vscode-terminal-ansiRed);
+    margin-bottom: 16px;
+}
+
+.canvas-error-message {
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+
+/* Markdown Rendering in Nodes */
+.node-markdown h1,
+.node-markdown h2,
+.node-markdown h3,
+.node-markdown h4,
+.node-markdown h5,
+.node-markdown h6 {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.node-markdown h1 { font-size: 1.5em; }
+.node-markdown h2 { font-size: 1.25em; }
+.node-markdown h3 { font-size: 1.1em; }
+
+.node-markdown p {
+    margin-bottom: 0.75em;
+}
+
+.node-markdown ul,
+.node-markdown ol {
+    margin-bottom: 0.75em;
+    padding-left: 1.5em;
+}
+
+.node-markdown li {
+    margin-bottom: 0.25em;
+}
+
+.node-markdown code {
+    background: var(--vscode-input-background);
+    padding: 2px 6px;
+    border-radius: var(--border-radius-sm);
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+.node-markdown pre {
+    background: var(--vscode-input-background);
+    padding: 12px;
+    border-radius: var(--border-radius-sm);
+    overflow-x: auto;
+    margin-bottom: 0.75em;
+}
+
+.node-markdown pre code {
+    background: transparent;
+    padding: 0;
+}
+
+.node-markdown blockquote {
+    border-left: 3px solid var(--vscode-terminal-ansiBlue);
+    padding-left: 12px;
+    margin-left: 0;
+    color: var(--vscode-editor-foreground);
+    opacity: 0.8;
+}
+
+.node-markdown hr {
+    border: none;
+    border-top: 1px solid var(--vscode-input-border);
+    margin: 1em 0;
+}
+
+.node-markdown img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* AI Chat Panel (future) */
+.ai-chat-panel {
+    position: absolute;
+    bottom: 34px;
+    left: 10px;
+    width: 350px;
+    max-height: 400px;
+    background: var(--vscode-input-background);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+}
+
+.ai-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+.ai-chat-message {
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    border-radius: var(--border-radius-sm);
+    background: var(--vscode-editor-background);
+}
+
+.ai-chat-message.user {
+    border-left: 3px solid var(--vscode-terminal-ansiBlue);
+}
+
+.ai-chat-message.assistant {
+    border-left: 3px solid var(--vscode-terminal-ansiGreen);
+}
+
+.ai-chat-input {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    border-top: 1px solid var(--vscode-input-border);
+}
+
+.ai-chat-input textarea {
+    flex: 1;
+    resize: none;
+    min-height: 60px;
+    padding: 8px;
+    background: var(--vscode-editor-background);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: var(--border-radius-sm);
+    color: var(--vscode-input-foreground);
+    font-family: inherit;
+    font-size: var(--font-size-base);
+}
+
+.ai-chat-input button {
+    align-self: flex-end;
+}
