@@ -205,9 +205,9 @@ function handleDoubleClick(e) {
             window.openInlineEditor(node);
         }
     } else {
-        // Neue Node erstellen
+        // Sticky Note erstellen als Standard bei Doppelklick auf leere Fläche
         addNode({
-            type: 'note',
+            type: 'sticky',
             x: coords.x - CONFIG.DEFAULT_NODE_WIDTH / 2,
             y: coords.y - CONFIG.DEFAULT_NODE_HEIGHT / 2,
             content: ''
