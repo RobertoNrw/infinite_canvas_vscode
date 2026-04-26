@@ -109,14 +109,30 @@
 
 <script>
 'use strict';
+
+// ═══ RESIZE (vor anderen Funktionen definieren) ═══
+function resizeCV(){
+  const dpr=window.devicePixelRatio||1;
+  const w=window.innerWidth,h=window.innerHeight;
+  canvas.width=Math.round(w*dpr);
+  canvas.height=Math.round(h*dpr);
+  canvas.style.width=w+'px';
+  canvas.style.height=h+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  sR();
+}
+
 // ═══ PASSWORD ═══
-const PW='2287';if(sessionStorage.getItem('ic_auth')==='1')unlockApp();
+const PW='2287';
+let canvas,ctx;
+if(sessionStorage.getItem('ic_auth')==='1')unlockApp();
 document.getElementById('pw-btn').onclick=checkPw;document.getElementById('pw-input').onkeydown=e=>{if(e.key==='Enter')checkPw();};
 function checkPw(){const v=document.getElementById('pw-input').value;if(v===PW){sessionStorage.setItem('ic_auth','1');unlockApp();}else{document.getElementById('pw-input').classList.add('error');document.getElementById('pw-error').textContent='Falscher PIN';setTimeout(()=>{document.getElementById('pw-input').classList.remove('error');document.getElementById('pw-error').textContent='';},1200);}}
 function unlockApp(){document.getElementById('pw-screen').classList.add('hidden');document.getElementById('toolbar').style.display='flex';document.getElementById('statusbar').style.display='flex';document.getElementById('minimap').style.display='block';initCanvas();}
 
 // ═══ CORE ═══
-const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+canvas=document.getElementById('canvas');
+ctx=canvas.getContext('2d');
 const mmC=document.getElementById('minimap-canvas'),mmX=mmC.getContext('2d');
 const SNAP=20,GRID=20,GRID_MAJOR=100,MAXH=60,MNW=80,MNH=60;
 function getCanvasCssSize(){const dpr=window.devicePixelRatio||1;return{w:canvas.width/dpr,h:canvas.height/dpr};}
@@ -430,16 +446,7 @@ function expPNG(){
 }
 
 // ═══ RESIZE ═══
-function resizeCV(){
-  const dpr=window.devicePixelRatio||1;
-  const w=window.innerWidth,h=window.innerHeight;
-  canvas.width=Math.round(w*dpr);
-  canvas.height=Math.round(h*dpr);
-  canvas.style.width=w+'px';
-  canvas.style.height=h+'px';
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  sR();
-}
+// resizeCV ist bereits oben definiert (vor dem Password-Check)
 window.addEventListener('resize',resizeCV);
 window.addEventListener('blur',resetInteractionState);document.addEventListener('visibilitychange',()=>{if(document.hidden)resetInteractionState();});
 

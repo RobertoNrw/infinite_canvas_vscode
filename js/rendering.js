@@ -38,6 +38,9 @@ function resizeCanvas() {
     requestAnimationFrame(render);
 }
 
+// Export resizeCanvas für externen Zugriff (z.B. von bootstrap.js)
+export { resizeCanvas as resizeCV };
+
 // Haupt-Render-Funktion
 export function render() {
     if (!ctx || !canvas) return;

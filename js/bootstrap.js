@@ -48,10 +48,10 @@ function exposeGlobalAPI() {
             maxY = Math.max(maxY, node.y + node.height);
         });
         
-        const canvas = document.querySelector('#canvas');
-        if (!canvas) return;
+        const canvasEl = document.querySelector('#canvas');
+        if (!canvasEl) return;
         
-        const rect = canvas.getBoundingClientRect();
+        const rect = canvasEl.getBoundingClientRect();
         const contentWidth = maxX - minX;
         const contentHeight = maxY - minY;
         const padding = 50;
