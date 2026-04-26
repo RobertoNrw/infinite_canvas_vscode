@@ -27,6 +27,50 @@
     align-items: center;
 }
 
+/* Toolbar Logo */
+.toolbar-logo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: linear-gradient(135deg, rgba(0, 122, 255, 0.2), rgba(199, 125, 255, 0.2));
+    border-radius: var(--rs);
+    border: 1px solid rgba(0, 122, 255, 0.3);
+}
+
+.logo-icon {
+    font-size: 18px;
+    background: linear-gradient(135deg, #007AFF, #C77DFF);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+}
+
+.logo-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    background: linear-gradient(135deg, #007AFF, #C77DFF);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.logo-by {
+    font-size: 10px;
+    color: var(--text3);
+    font-weight: 500;
+    opacity: 0.7;
+}
+
+body.vscode-dark .toolbar-logo,
+body:not(.vscode-light) .toolbar-logo {
+    background: linear-gradient(135deg, rgba(0, 122, 255, 0.25), rgba(199, 125, 255, 0.25));
+    border-color: rgba(0, 122, 255, 0.4);
+    box-shadow: 0 0 10px rgba(0, 122, 255, 0.1);
+}
+
 .toolbar-divider {
     width: 1px;
     height: 20px;
