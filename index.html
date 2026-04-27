@@ -25,7 +25,7 @@
             <div class="toolbar-logo">
                 <span class="logo-icon">∞</span>
                 <span class="logo-text">Canvas</span>
-                <span class="logo-by">by roberto.b</span>
+                <span class="logo-by">by roberto.bonavita</span>
             </div>
         </div>
         <div class="toolbar-divider"></div>
@@ -66,14 +66,19 @@
 
     <!-- Statusbar -->
     <div id="statusbar" class="statusbar" role="status" aria-live="polite">
-        <span id="status-coords" aria-label="Koordinaten">x: 0, y: 0</span>
-        <span class="status-divider">|</span>
-        <span id="status-zoom" aria-label="Zoom-Level">100%</span>
-        <span class="status-divider">|</span>
-        <span id="status-selection" aria-label="Auswahl">Keine Auswahl</span>
-        <span class="status-divider">|</span>
-        <span id="status-snap" class="badge hidden" aria-label="Snap aktiv">SNAP</span>
-        <span id="status-lock" class="badge hidden" aria-label="Gespeichert">LOCKED</span>
+        <div class="statusbar-left">
+            <span id="status-coords" aria-label="Koordinaten">x: 0, y: 0</span>
+            <span class="status-divider">|</span>
+            <span id="status-zoom" aria-label="Zoom-Level">100%</span>
+            <span class="status-divider">|</span>
+            <span id="status-selection" aria-label="Auswahl">Keine Auswahl</span>
+            <span class="status-divider">|</span>
+            <span id="status-snap" class="badge hidden" aria-label="Snap aktiv">SNAP</span>
+            <span id="status-lock" class="badge hidden" aria-label="Gespeichert">LOCKED</span>
+        </div>
+        <div class="statusbar-right">
+            <span class="status-footer">coded with <span class="heart-icon">❤️</span> by roberto.bonavita</span>
+        </div>
     </div>
 
     <!-- Save Indicator -->
