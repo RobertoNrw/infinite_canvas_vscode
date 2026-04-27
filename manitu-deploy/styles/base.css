@@ -1,0 +1,249 @@
+/* ==================== BASE STYLES ==================== */
+/* Design Tokens, Themes, Typography, Generic Components */
+
+/* --- CSS Variables & Theming --- */
+:root {
+    /* Colors - Dark Theme (Default) */
+    --bg: #1c1c1e;
+    --surface: rgba(44, 44, 46, 0.92);
+    --glass: rgba(30, 30, 32, 0.78);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --text: #f5f5f7;
+    --text2: rgba(255, 255, 255, 0.55);
+    --text3: rgba(255, 255, 255, 0.3);
+    
+    /* Accent Colors */
+    --accent: #007AFF;
+    --accent-soft: rgba(0, 122, 255, 0.15);
+    --green: #30D158;
+    --red: #FF453A;
+    --yellow: #FFD93D;
+    --purple: #C77DFF;
+    
+    /* Shadows */
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 16px 64px rgba(0, 0, 0, 0.6);
+    
+    /* Border Radius */
+    --r: 12px;
+    --rs: 8px;
+    
+    /* Typography */
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    
+    /* Node Defaults */
+    --node-bg: #2c2c2e;
+    --node-border: #48484a;
+    --node-text: #f5f5f7;
+    
+    /* Canvas */
+    --canvas-bg: #1c1c1e;
+    
+    /* Transitions */
+    --transition-fast: 0.12s;
+    --transition-normal: 0.2s;
+    --transition-slow: 0.3s;
+}
+
+/* Light Theme */
+:root.light, body.vscode-light {
+    --bg: #f2f2f7;
+    --surface: rgba(255, 255, 255, 0.92);
+    --glass: rgba(255, 255, 255, 0.78);
+    --glass-border: rgba(0, 0, 0, 0.06);
+    --text: #1c1c1e;
+    --text2: rgba(0, 0, 0, 0.5);
+    --text3: rgba(0, 0, 0, 0.25);
+    --accent-soft: rgba(0, 122, 255, 0.1);
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 16px 64px rgba(0, 0, 0, 0.12);
+    --node-bg: #fff;
+    --node-border: #d1d1d6;
+    --node-text: #1c1c1e;
+    --canvas-bg: #f2f2f7;
+}
+
+/* VS Code Dark Theme Integration */
+body.vscode-dark {
+    --bg: #1e1e1e;
+    --surface: rgba(45, 45, 45, 0.92);
+    --glass: rgba(33, 33, 33, 0.78);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --text: #cccccc;
+    --text2: rgba(204, 204, 204, 0.6);
+    --text3: rgba(204, 204, 204, 0.35);
+    --canvas-bg: #1e1e1e;
+}
+
+/* --- Reset & Base --- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--canvas-bg);
+    color: var(--text);
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* --- Accessibility: Focus States --- */
+*:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* --- Generic Button Styles --- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--rs);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.btn:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--text);
+}
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+.btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: var(--accent);
+    opacity: 0.9;
+    color: #fff;
+}
+
+.btn-secondary {
+    background: transparent;
+    border-color: var(--glass-border);
+    color: var(--text2);
+}
+
+.btn-secondary:hover {
+    background: var(--accent-soft);
+    color: var(--text);
+}
+
+.btn-icon {
+    padding: 6px 10px;
+    font-size: 16px;
+    background: transparent;
+    border: 1px solid transparent;
+}
+
+.btn-icon:hover {
+    background: var(--accent-soft);
+    border-color: var(--glass-border);
+}
+
+.btn-close {
+    padding: 4px 8px;
+    font-size: 14px;
+    background: transparent;
+    border: none;
+    color: var(--text3);
+}
+
+.btn-close:hover {
+    background: var(--accent-soft);
+    color: var(--text);
+}
+
+/* --- Generic Panel Styles --- */
+.panel {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--r);
+    backdrop-filter: blur(40px) saturate(180%);
+    box-shadow: var(--shadow);
+}
+
+/* --- Badge Component --- */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge.hidden {
+    display: none;
+}
+
+/* --- Utility Classes --- */
+.hidden {
+    display: none !important;
+}
+
+.spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--glass-border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* --- Scrollbar Styling --- */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--glass-border);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text3);
+}

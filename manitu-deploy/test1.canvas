@@ -1,0 +1,137 @@
+{
+  "nodes": [
+    {
+      "id": "node_2",
+      "x": 649,
+      "y": 107,
+      "width": 250,
+      "height": 120,
+      "type": "text",
+      "text": "tell me a joke about dogs "
+    },
+    {
+      "id": "node_3",
+      "x": 214.59980317664628,
+      "y": 371.3549707305233,
+      "width": 250,
+      "height": 120,
+      "type": "text",
+      "text": "Sure! Here’s one for you:  \n\n**Why did the dog sit in the shade?**  \nBecause he didn’t want to be a *hot dog*! 🌭🐶  \n\nWant me to give you a pun-filled *series* of dog jokes?",
+      "aiModel": "openai/gpt-5-chat"
+    },
+    {
+      "id": "node_4",
+      "x": 1074,
+      "y": 377,
+      "width": 250,
+      "height": 120,
+      "type": "text",
+      "text": "Sure! Here's a lighthearted dog joke for you:  \n\n**Why don’t dogs make good dancers?**  \n*Because they have two left paws!* 🐾  \n\n*(Bonus groaner: My dog threw a party… it was a **paw-ty**! 🎉)*  \n\nHope that gives you a tail-wagging chuckle! 😄",
+      "aiModel": "qwen/qwen3-235b-a22b-thinking-2507"
+    },
+    {
+      "id": "node_6",
+      "x": 1536.83108299933,
+      "y": 337.5080256867881,
+      "width": 250,
+      "height": 120,
+      "type": "text",
+      "text": "Why did the dog sit in the shade while eating his bone?  \nBecause he didn’t want to be a *hot dog*! 🐾😄",
+      "aiModel": "tngtech/deepseek-r1t2-chimera:free"
+    },
+    {
+      "id": "node_7",
+      "x": 1990.3699367484928,
+      "y": 337.5080256867881,
+      "width": 250,
+      "height": 120,
+      "type": "text",
+      "text": "A man is walking his dog through the park when he sees another man with a dog that has no legs.\n\nFeeling sorry for the poor pup, he says, \"What happened to your dog?\"\n\nThe other man replies, \"He can't walk, so I take him out for a drag every morning.\"",
+      "aiModel": "google/gemini-2.5-pro"
+    },
+    {
+      "id": "node_8",
+      "x": 1331,
+      "y": 641,
+      "width": 250,
+      "height": 120,
+      "type": "text",
+      "text": "Rank them "
+    },
+    {
+      "id": "node_9",
+      "x": 1311.5555555555554,
+      "y": 901,
+      "width": 555.5555555555554,
+      "height": 413.33333333333326,
+      "type": "text",
+      "text": "Of course! Here is a ranking of the dog jokes, from best to worst, with a little analysis.\n\nHumor is subjective, but based on cleverness, structure, and general appeal, here's the breakdown:\n\n---\n\n### **The Ranking**\n\n**1st Place (Gold Medal 🥇): The \"No Legs\" Joke**\n\n> A man is walking his dog through the park when he sees another man with a dog that has no legs. Feeling sorry for the poor pup, he says, \"What happened to your dog?\" The other man replies, \"He can't walk, so I take him out for a drag every morning.\"\n\n**Why it's the best:** This joke is the most sophisticated of the group. It uses a narrative setup to create an expectation of sadness or sympathy, which it then completely subverts with a clever and dark punchline. The wordplay on \"drag\" is unexpected and brilliant. It's a joke that makes you think for a second before you laugh.\n\n---\n\n**2nd Place (Silver Medal 🥈): The \"Hot Dog\" Joke**\n\n> Why did the dog sit in the shade?\n> Because he didn’t want to be a *hot dog*! 🌭🐶\n\n**Why it's a classic:** This is the quintessential \"dad joke.\" It's a perfect pun that is simple, universally understood, and charmingly groan-worthy. It works because the image it creates is ridiculous and the wordplay is flawless. It’s an all-time great for a reason.\n\n*(Note: The two versions of this joke you provided are identical in their punchline, so they share this spot.)*\n\n---\n\n**3rd Place (Bronze Medal 🥉): The \"Dancer\" Joke**\n\n> Why don’t dogs make good dancers?\n> *Because they have two left paws!* 🐾\n\n**Why it's still good:** This is a solid, lighthearted pun. It plays on the common idiom \"two left feet\" and adapts it perfectly for the subject. It's cute, harmless, and guaranteed to get a chuckle or an eye-roll. While it's not as clever as the \"drag\" joke or as iconic as the \"hot dog\" joke, it's a reliable and fun entry in the dog joke hall of fame.",
+      "aiModel": "google/gemini-2.5-pro"
+    }
+  ],
+  "edges": [
+    {
+      "id": "conn_1754950453755",
+      "fromNode": "node_2",
+      "fromSide": "right",
+      "toNode": "node_3",
+      "toSide": "left"
+    },
+    {
+      "id": "conn_1754950458829",
+      "fromNode": "node_2",
+      "fromSide": "right",
+      "toNode": "node_4",
+      "toSide": "left"
+    },
+    {
+      "id": "conn_1754950467153",
+      "fromNode": "node_2",
+      "fromSide": "right",
+      "toNode": "node_6",
+      "toSide": "left"
+    },
+    {
+      "id": "conn_1754950468125",
+      "fromNode": "node_2",
+      "fromSide": "right",
+      "toNode": "node_7",
+      "toSide": "left"
+    },
+    {
+      "id": "conn_1754950504322",
+      "fromNode": "node_3",
+      "fromSide": "bottom",
+      "toNode": "node_8",
+      "toSide": "top"
+    },
+    {
+      "id": "conn_1754950506772",
+      "fromNode": "node_4",
+      "fromSide": "bottom",
+      "toNode": "node_8",
+      "toSide": "top"
+    },
+    {
+      "id": "conn_1754950509241",
+      "fromNode": "node_6",
+      "fromSide": "bottom",
+      "toNode": "node_8",
+      "toSide": "top"
+    },
+    {
+      "id": "conn_1754950511848",
+      "fromNode": "node_7",
+      "fromSide": "bottom",
+      "toNode": "node_8",
+      "toSide": "top"
+    },
+    {
+      "id": "conn_1754950545502",
+      "fromNode": "node_8",
+      "fromSide": "right",
+      "toNode": "node_9",
+      "toSide": "left"
+    }
+  ]
+}
