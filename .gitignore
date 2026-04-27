@@ -1,4 +1,5 @@
 ```
+<<<<<<< logo-anpassung-roberto-bonavita-d7a11
 # Compiled and build artifacts
 *.pyc
 __pycache__/
@@ -15,22 +16,33 @@ node_modules/
 .julia/
 zig-cache/
 .deps/
+=======
+>>>>>>> main
 
 # Logs and temp files
 *.log
 *.tmp
 *.swp
+<<<<<<< logo-anpassung-roberto-bonavita-d7a11
 *.swo
 *.out
+=======
+
+>>>>>>> main
 
 # Environment
 .env
 .env.local
+<<<<<<< logo-anpassung-roberto-bonavita-d7a11
 .env.*
+=======
+
+>>>>>>> main
 
 # Editors
 .vscode/
 .idea/
+<<<<<<< logo-anpassung-roberto-bonavita-d7a11
 *.swp
 *.swo
 
@@ -52,6 +64,13 @@ __pycache__/
 *.so
 *.egg-info/
 .eggs/
+=======
+
+*.exe
+*.dll
+*.so
+*.a
+>>>>>>> main
 
 # Compressed files
 *.zip
@@ -76,7 +95,10 @@ __pycache__/
 *.tar.bz2
 *.tar.xz
 *.tar.zst
+<<<<<<< logo-anpassung-roberto-bonavita-d7a11
 
 # Original rules preserved
 *.log
+=======
+>>>>>>> main
 ```
